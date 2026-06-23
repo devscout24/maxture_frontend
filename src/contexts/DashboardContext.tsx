@@ -4,6 +4,8 @@ import { createContext, useContext, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getUserProfile, getSidebarCounts, getAuthToken } from "@/lib/api";
 import { readStoredAuthSession } from "@/lib/store";
+import isValidToken from "@/lib/token-validation";
+import useAuth from "@/hooks/useAuth";
 
 type DashboardProfile = {
   name: string;
@@ -66,6 +68,7 @@ type DashboardProviderProps = {
 };
 
 export function DashboardProvider({ children }: DashboardProviderProps) {
+  const { logout } = useAuth();
   const authQuery = useQuery({
     queryKey: ["auth"],
     queryFn: () => readStoredAuthSession(),
@@ -80,7 +83,9 @@ export function DashboardProvider({ children }: DashboardProviderProps) {
     enabled: !!authToken,
     queryFn: async () => {
       const token = authToken ?? getAuthToken();
-      if (!token) {
+      const isValid = token ? isValidToken(token) : false;
+      if (!token || !isValid) {
+        await logout();
         return null;
       }
 
